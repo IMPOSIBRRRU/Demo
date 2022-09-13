@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
@@ -74,6 +77,22 @@ app.Run(async(context) =>
     {
         await response.WriteAsync($"<h2>New page</h2>");
     }
+    else if (request.Path == "/api/user") //api user json hell
+    {
+
+        var responseText = "wrong data";
+        if (request.HasJsonContentType())
+        {
+            var jsonOption = new JsonSerializerOptions();
+            jsonOption.Converters.Add(new PersonConverter());
+            var person = await request.ReadFromJsonAsync<Person>(jsonOption);
+            if (person != null)
+            {
+                responseText = $"Name: {person.Name} Age: {person.Age}";
+            }
+        }
+        await response.WriteAsJsonAsync(new { text = responseText });
+    }
     else //shows path if nothing matches
     {
         await response.WriteAsync($"Path: {request.Path}");
@@ -81,3 +100,53 @@ app.Run(async(context) =>
 });
 
 app.Run();
+
+public record Person(string Name, int Age);
+public class PersonConverter : JsonConverter<Person>
+{
+    public override Person Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var personName = "Who?";
+        var personAge = 0;
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.PropertyName)
+            {
+                var propertyName = reader.GetString();
+                reader.Read();
+                switch (propertyName?.ToLower())
+                {
+                    case "age" when reader.TokenType == JsonTokenType.Number:
+                        personAge = reader.GetInt32();
+                        break;
+
+                    case "age" when reader.TokenType == JsonTokenType.String:
+                        string? stringValue = reader.GetString();
+                        if (int.TryParse(stringValue, out int value))
+                        {
+                            personAge = value;
+                        }
+                        break;
+
+                    case "name":
+                        string? name = reader.GetString();
+                        if (name != null && name != "")
+                        {
+                            personName = reader.GetString();
+                        }
+                        break;
+                }
+            }
+        }
+        return new Person(personName, personAge);
+    }
+
+    public override void Write(Utf8JsonWriter writer, Person person, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("name", person.Name);
+        writer.WriteNumber("age", person.Age);
+
+        writer.WriteEndObject();
+    }
+}
