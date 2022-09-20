@@ -11,6 +11,9 @@ List<Person> users = new List<Person>
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 WebApplication app = builder.Build();
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 //middleware pipline
 //error handler
 app.UseMiddleware<ErrorHandlingMiddleware>();
@@ -32,27 +35,6 @@ app.Map("/upload", appBuilder =>
         context.Response.ContentType = "text/html; charset=utf-8";
         await context.Response.SendFileAsync("html/upload.html");
     });
-});    
-
-//simple mapping
-app.Run(async(context) =>
-{
-    context.Response.ContentType = "text/html; charset=utf-8";
-    string path = context.Request.Path;
-    string fullPath = $"html/{path}";
-    if (File.Exists(fullPath))
-    {
-        await context.Response.SendFileAsync(fullPath);
-    }
-    else if (fullPath == "html//")
-    {
-        await context.Response.SendFileAsync("html/index.html");
-    }
-    else
-    {
-        context.Response.StatusCode = 404;
-    }
-
 });
 
 app.Run();

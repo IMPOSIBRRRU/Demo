@@ -27,7 +27,7 @@ namespace Demo.Middlewares
             string expressionForGuid = @"^/api/users/\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$";
 
             if (path == "/api/users" && request.Method == "GET")
-            {
+            {                
                 await GetAllPeople(response);
             }
             else if (Regex.IsMatch(path, expressionForGuid) && request.Method == "GET")
